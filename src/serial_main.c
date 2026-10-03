@@ -1,7 +1,10 @@
 #include <stdlib.h>
-#include <stdio.h>
-#include <libserialport.h>
-#include "voltronic_crc.h"
+#include <stdio.h>     /* printf() srtlen() */
+#include <string.h>    /* strlen() */
+#include "voltronic_dev_serial.h"
+
+/* local prototypes */
+int printString(const char* string);
 
 /**
 * This class is only here to link everything related to serial port to assert compilation
@@ -22,8 +25,11 @@ int main() {
     exit(1);
   }
 
+  char input[20];
   char buffer[256];
   int result;
+  size_t lenInputString;
+  int numCharsReceived;
 
   // Write end of input
   result = voltronic_dev_write(
@@ -44,24 +50,33 @@ int main() {
   printf("Receive NAK result: %i\n", result);
   if (result > 0) printf("buffer: %s \n", buffer);
 
-  /* Query the device a bunch of ways to cover all code branches
-  /* send QPI without a crc */
-  result = voltronic_dev_execute(dev, DISABLE_WRITE_VOLTRONIC_CRC, "QPI", 3, buffer, sizeof(buffer), 1000);
-  printf("1) DISABLE_WRITE_VOLTRONIC_CRC: %i\n", result);
-  if (result >0) printf("buffer: %s\n", buffer);
-  /**/
-  result = voltronic_dev_execute(dev, DISABLE_PARSE_VOLTRONIC_CRC, "QPI", 3, buffer, sizeof(buffer), 1000);
-  printf("2) DISABLE_PARSE_VOLTRONIC_CRC: %i\n", result);
-  if (result >0) printf("buffer: %s\n", buffer);
-  /* */
-  result = voltronic_dev_execute(dev, DISABLE_VERIFY_VOLTRONIC_CRC, "QPI", 3, buffer, sizeof(buffer), 1000);
-  printf("3) DISABLE_VERIFY_VOLTRONIC_CRC: %i\n", result);
-  if (result >0) printf("buffer: %s\n", buffer);
-  /* 0 - no defualt options */
-  result = voltronic_dev_execute(dev, 0, "QPI", 3, buffer, sizeof(buffer), 1000);
-  printf("4) 0: %i\n", result);
-  if (result >0) printf("buffer: %s\n", buffer);
+  /* loop for input until "0", then quit */
+  printf("Enter strings (max 12 chars, '0' to quit):\n");
 
+  while (1) {
+    printf("Input command > ");
+    scanf("%s", input);
+
+    /* Exit loop on quit condition */
+    if (input[0] == *"0") {
+      printf("Goodbye!\n");
+      break;
+    }
+
+    /* send command and pick up response */
+    lenInputString = strlen(input);
+    result = voltronic_dev_execute(dev, 0, input, lenInputString, buffer, sizeof(buffer), 1000);
+
+    printf("Returned:\n");
+    numCharsReceived = printString(buffer);
+    printf("\n");
+    if (result >0) {
+      printf("Characters received: %i\n", numCharsReceived);
+    } else {
+      printf("no characters received\n");
+    }  
+
+  } /* while */
   // Close the connection to the device
   voltronic_dev_close(dev);
 
@@ -70,4 +85,40 @@ int main() {
   } else {
     exit(2);
   }
-}
+} /* main */
+
+/** printString - prints inputed string in ascii and hex characters
+ *                until '\0' found
+ *
+ * Arguements:  String - pointer to string to be printed
+ * 
+ * Returns:     on success the number of characters until \0 (end of string)
+ *              on empty string, 0
+ *              on error -1
+ * 
+ * 25-Jan-26 JnG created
+ * 
+ */
+int printString(const char* string) {
+  int i;
+
+  printf("\n");
+  for (i = 0; string[i] != '\0'; i++) {
+    printf("%x ", (int)string[i]);  // Cast to int for clarity
+  }
+  printf("\n");
+  for (i = 0; string[i] != '\0'; i++) {
+    if ((int)(string[i] > 31) & (int)(string[i] < 127)) {
+      printf("%c ", (char)string[i]);  // Cast to char for clarity
+    } else {
+      printf("*");
+    }
+  }
+  printf("\n");
+
+  if (i > 0) {
+    return (i);
+  } else {
+    return (-1);
+  }
+} /* printString */

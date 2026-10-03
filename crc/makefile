@@ -3,7 +3,7 @@ CFLAGS := -Wall -Wextra -g $(shell pkg-config --cflags libserialport)
 LDFLAGS := $(shell pkg-config --libs libserialport)
 
 TARGET := test_crc
-SRCS := test_crc.c voltronic_crc.c
+SRCS := test_crc.c crc16_xmodem.c
 OBJS := $(SRCS:.c=.o)
 
 all: $(TARGET)
@@ -11,7 +11,7 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CC) $(OBJS) -o $@ $(LDFLAGS)
 
-%.o: %.c bla.h
+%.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:

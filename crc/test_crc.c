@@ -1,11 +1,11 @@
-#include "voltronic_crc.h"
 #include <stdio.h>
+#include "crc16_xmodem.h"
 
-int main (void) {
-    const char *data = "QPI";
-    voltronic_crc_t ret_crc;
-    ret_crc = calculate_voltronic_crc(data, 3);
-    printf ("CRC %u \n", ret_crc);
+int main(void) {
+  const uint8_t* data = (const uint8_t*)"QPI";
+  uint16_t ret_crc;
+  ret_crc = crc16_xmodem(data, 3);
+  printf("CRC 0x%X \n", ret_crc);
 
-    return (0);
+  return (0);
 }
